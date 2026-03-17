@@ -1,0 +1,47 @@
+{
+  "name": "planeso-google-sync",
+  "version": "1.0.0",
+  "description": "Sync your Plane.so work items with a Google calendar",
+  "license": "ISC",
+  "author": "Simon Sedlatschek <code@sedlatschek.com>",
+  "keywords": [
+    "plane.so",
+    "plane",
+    "google",
+    "calendar",
+    "sync"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sedlatschek/planeso-google-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sedlatschek/planeso-google-sync/issues"
+  },
+  "homepage": "https://github.com/sedlatschek/planeso-google-sync#readme",
+  "bin": {
+    "planeso-google-sync": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "rimraf dist && tsc",
+    "lint": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^25.5.0",
+    "eslint": "^10.0.3",
+    "globals": "^17.4.0",
+    "jiti": "^2.6.1",
+    "rimraf": "^6.1.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.1"
+  },
+  "files": [
+    "dist"
+  ]
+}

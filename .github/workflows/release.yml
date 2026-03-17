@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  release:
+    runs-on: 'ubuntu-latest'
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm cache clean --force
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm publish
+      - uses: ncipollo/release-action@v1
+        with:
+          generateReleaseNotes: true
