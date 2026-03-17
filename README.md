@@ -14,35 +14,61 @@ npm install planeso-google-sync -g
 
 ### 1. Google Calendar credentials
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/marketplace/product/google/calendar-json.googleapis.com) and create or select a project.
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and create or select a project.
 2. Enable the **Google Calendar API** for the project.
 3. Create an **OAuth 2.0 Client ID** (application type: *Desktop app*) and download `credentials.json`.
-4. Place the file at `~/.config/planeso-google-sync/credentials.json` (the default path). You can use a different location with `--credentials-path`.
+4. Open the downloaded file — you will copy its contents into your config file (see below).
 
 ### 2. Plane.so API token
 
 1. Open your Plane.so workspace and go to **Profile → API tokens**.
 2. Create a new token and copy it.
 
-### 3. First run
+### 3. Create a config file
 
-On the first run the tool will print an authorization URL. Open it in your browser, grant calendar read access, and paste the authorization code back into the terminal. The token is saved to `~/.config/planeso-google-sync/token.json` so subsequent runs happen silently.
+Create a file called `planeso-google-sync.config.yml` in whatever directory you will run the command from (or pass `--config <path>` to point to it elsewhere).
+
+```yaml
+planeso:
+  token: your-plane-api-token
+  workspace: your-workspace-slug   # the slug, not the UUID
+
+google:
+  calendarId: primary              # or a specific calendar ID
+  auth:
+    client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+    project_id: "your-project-id"
+    auth_uri: "https://accounts.google.com/o/oauth2/auth"
+    token_uri: "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs"
+    client_secret: "YOUR_CLIENT_SECRET"
+    redirect_uris:
+      - "http://localhost"
+```
+
+The `google.auth` block is the `installed` object from the `credentials.json` file downloaded in step 1.
+
+### 4. First run
+
+On the first run the tool will print an authorization URL. Open it in your browser, grant calendar read access, and paste the authorization code back into the terminal. The OAuth token is saved to `~/.config/planeso-google-sync/token.json` so subsequent runs happen silently.
 
 ## Usage
 
 ```sh
-planeso-google-sync --plane-token <your-plane-token> --workspace-id <your-workspace-slug> --calendar-id <your-calendar-id>
+planeso-google-sync
+```
+
+By default the tool looks for `planeso-google-sync.config.yml` in the current directory. Use `--config` to specify a different path:
+
+```sh
+planeso-google-sync --config /path/to/my-config.yml
 ```
 
 ### Options
 
-| Option | Required | Default | Description |
-|---|---|---|---|
-| `--plane-token <token>` | yes | — | Plane.so API token |
-| `--workspace-id <slug>` | yes | — | Plane.so workspace slug (not the UUID) |
-| `--calendar-id <id>` | yes | — | Google Calendar ID. Use `primary` for your main calendar |
-| `--credentials-path <path>` | no | `~/.config/planeso-google-sync/credentials.json` | Path to your Google OAuth2 `credentials.json` |
-| `--token-path <path>` | no | `~/.config/planeso-google-sync/token.json` | Where to store the Google OAuth2 token after first auth |
+| Option | Default | Description |
+|---|---|---|
+| `--config <path>` | `planeso-google-sync.config.yml` | Path to the YAML config file |
 
 ### How it works
 
@@ -54,5 +80,5 @@ Each run checks whether you have any Google Calendar events happening at the cur
 Run it as a cron job or scheduled task to keep your status continuously in sync. For example, to update every 5 minutes with cron:
 
 ```
-*/5 * * * * planeso-google-sync --plane-token <token> --workspace-id <slug> --calendar-id primary
+*/5 * * * * cd /path/to/config && planeso-google-sync
 ```
