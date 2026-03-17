@@ -43,5 +43,9 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "commander": "^14.0.3",
+    "googleapis": "^171.4.0"
+  }
 }
