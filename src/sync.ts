@@ -7,19 +7,18 @@ import { logger } from './logger.js';
 import { getGoogleAuthClient } from './google/auth.js';
 import type { OAuth2Client } from 'google-auth-library';
 import {
-  createEvent,
+  upsertEvent,
   getSyncedEvents,
-  updateEvent,
   deleteEvents,
   type EventDto,
 } from './google/index.js';
-import type { calendar_v3 } from 'googleapis';
 import { dateTimeFromIso } from './utility.js';
 import {
   isWorkItemWithDates,
   type WorkItemWithDates,
 } from './types/WorkItemWithDates.js';
 import { PlaneSoGoogleSyncError } from './errors/PlaneSoGoogleSyncError.js';
+import type { EventWithId } from './types/EventWithId.js';
 
 export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`Syncing ${syncConfig.plane.workspace}/${syncConfig.plane.projectId} to Google Calendar ${syncConfig.google.calendarId}...`);
@@ -80,7 +79,7 @@ function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, proj
   };
 }
 
-async function syncWorkItem(existingEvents: calendar_v3.Schema$Event[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates, auth: OAuth2Client, calendarId: string): Promise<void> {
+async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates, auth: OAuth2Client, calendarId: string): Promise<void> {
   logger.info(`Syncing work item "${workItem.name}"`);
 
   if (!workItem.start_date || !workItem.target_date) {
@@ -89,14 +88,9 @@ async function syncWorkItem(existingEvents: calendar_v3.Schema$Event[], syncConf
 
   const matchingEvent = existingEvents.find(event => event.extendedProperties?.private?.planeIssueId === workItem.id);
   const eventDto = getEventDtoFromWorkItem(syncConfig, workspace, project, workItem);
+  const result = await upsertEvent(auth, calendarId, eventDto, matchingEvent);
 
-  if (matchingEvent && matchingEvent.id) {
-    logger.info(`> Event already exists for work item "${workItem.name}", updating...`);
-    await updateEvent(auth, calendarId, matchingEvent.id, eventDto);
-    return;
-  }
-
-  logger.info(`> Creating event for work item "${workItem.name}"...`);
-  await createEvent(auth, calendarId, eventDto);
-  logger.info(`> Event created for work item "${workItem.name}"`);
-};
+  if (result === 'created') logger.info(`> Created event for work item "${workItem.name}"`);
+  else if (result === 'updated') logger.info(`> Updated event for work item "${workItem.name}"`);
+  else logger.info(`> Event for work item "${workItem.name}" is already up to date, skipping`);
+}
