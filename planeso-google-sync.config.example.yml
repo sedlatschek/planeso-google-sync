@@ -1,0 +1,18 @@
+sync:
+  - plane:
+      baseUrl: https://api.plane.so
+      apiKey: my-plane-api-token
+      workspace: my-workspace-slug
+      projectId: my-project-uuid
+    google:
+      calendarId: my-calendar-id@group.calendar.google.com  # or a specific calendar ID
+      prefix: "🔨 "
+      auth:
+        clientId: "your-client-id.apps.googleusercontent.com"
+        projectId: "your-project-id"
+        authUri: "https://accounts.google.com/o/oauth2/auth"
+        tokenUri: "https://oauth2.googleapis.com/token"
+        authProviderX509CertUrl: "https://www.googleapis.com/oauth2/v1/certs"
+        clientSecret: "your-client-secret"
+        redirectUris:
+          - "http://localhost"

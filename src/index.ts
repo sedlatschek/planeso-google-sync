@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+
 import { Command } from 'commander';
-import { getAuthClient } from './auth.js';
 import { sync } from './sync.js';
 import { getConfig } from './config.js';
+import { logger } from './logger.js';
 
 type CommandOptions = { config: string };
 
@@ -10,16 +11,17 @@ const program = new Command();
 
 program
   .name('planeso-google-sync')
-  .description('Sync your Google Calendar status with Plane.so')
+  .description('Sync your Plane.so work items to Google Calendar')
   .option('--config <path>', 'Path to config YAML file', 'planeso-google-sync.config.yml')
   .action(async (opts: CommandOptions) => {
+    logger.info('planeso-google-sync starting...');
+
     const config = await getConfig(opts.config);
     try {
-      const auth = await getAuthClient(config.google.auth);
-      await sync(auth, config);
+      await Promise.all(config.sync.map(syncConfig => sync(syncConfig)));
     }
-    catch (err) {
-      console.error('Error:', err instanceof Error ? err.message : String(err));
+    catch (error) {
+      logger.error(error);
       process.exit(1);
     }
   });

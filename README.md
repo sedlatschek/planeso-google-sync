@@ -1,6 +1,6 @@
 # Plane.so Google Sync
 
-This is a simple script to sync your Google Calendar with Plane.so. It uses the Google Calendar API to fetch your events and then updates your Plane.so status accordingly.
+This is a simple script to sync your Plane.so work items with Google Calendar. It uses the work items' start and due dates to create and maintain all-day events in your Google Calendar.
 
 It is meant to run locally on your machine, updating every run. You can set it up as a cron job or a scheduled task to run at regular intervals.
 
@@ -50,7 +50,7 @@ The `google.auth` block is the `installed` object from the `credentials.json` fi
 
 ### 4. First run
 
-On the first run the tool will print an authorization URL. Open it in your browser, grant calendar read access, and paste the authorization code back into the terminal. The OAuth token is saved to `~/.config/planeso-google-sync/token.json` so subsequent runs happen silently.
+On the first run the tool will print an authorization URL. Open it in your browser, grant calendar read/write access, and paste the authorization code back into the terminal. The OAuth token is saved to `~/.config/planeso-google-sync/token.json` so subsequent runs happen silently.
 
 ## Usage
 
@@ -72,13 +72,16 @@ planeso-google-sync --config /path/to/my-config.yml
 
 ### How it works
 
-Each run checks whether you have any Google Calendar events happening at the current moment:
+Each run fetches all work items across every project in your Plane.so workspace and syncs those that have both a **start date** and a **due date** to Google Calendar as all-day events:
 
-- **Event in progress** → sets your Plane.so status to *busy* and the status message to the event title(s).
-- **No active event** → sets your Plane.so status to *online*.
+- **New item** (no matching calendar event yet) → creates a new all-day event.
+- **Changed item** (title or dates differ) → updates the existing event.
+- **Removed/date-cleared item** (event exists but item no longer has dates) → deletes the orphaned event.
 
-Run it as a cron job or scheduled task to keep your status continuously in sync. For example, to update every 5 minutes with cron:
+Events are tagged with a private extended property so the tool only touches what it created and never interferes with your other calendar entries.
+
+Run it as a cron job or scheduled task to keep your calendar continuously in sync. For example, to update every 15 minutes with cron:
 
 ```
-*/5 * * * * cd /path/to/config && planeso-google-sync
+*/15 * * * * cd /path/to/config && planeso-google-sync
 ```

@@ -21,6 +21,7 @@ export default defineConfig([
   tseslint.configs.strict,
   stylistic.configs.recommended,
   { rules: {
+    'no-console': 'error',
     '@typescript-eslint/explicit-function-return-type': 'error',
     '@stylistic/semi': [
       'error',
