@@ -2,6 +2,7 @@ import {
   calendar_v3, google,
 } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
+import PQueue from 'p-queue';
 import {
   isEventWithId, type EventWithId,
 } from '../types/EventWithId.js';
@@ -12,6 +13,11 @@ const PLANE_SOURCE_TAG = 'planeso-google-sync';
 export type UpsertResult = 'created' | 'updated' | 'unchanged';
 
 export class GoogleClient {
+  private readonly queue = new PQueue({
+    intervalCap: 10,
+    interval: 1000,
+  });
+
   constructor(private readonly auth: OAuth2Client) { }
 
   public async getSyncedEvents(calendarId: string): Promise<EventWithId[]> {
@@ -23,16 +29,16 @@ export class GoogleClient {
     let pageToken: string | undefined;
 
     do {
-      const response = await calendar.events.list({
+      const response = await this.queue.add(() => calendar.events.list({
         calendarId,
         privateExtendedProperty: [`planeSource=${PLANE_SOURCE_TAG}`],
         showDeleted: false,
         singleEvents: true,
         maxResults: 250,
         ...(pageToken ? { pageToken } : {}),
-      });
-      events.push(...(response.data.items?.filter(isEventWithId) ?? []));
-      pageToken = response.data.nextPageToken ?? undefined;
+      }));
+      events.push(...(response?.data.items?.filter(isEventWithId) ?? []));
+      pageToken = response?.data.nextPageToken ?? undefined;
     } while (pageToken);
 
     return events;
@@ -49,10 +55,10 @@ export class GoogleClient {
     });
 
     if (!existingEvent) {
-      await calendar.events.insert({
+      await this.queue.add(() => calendar.events.insert({
         calendarId,
         requestBody: this.buildRequestBody(eventDto),
-      });
+      }));
       return 'created';
     }
 
@@ -60,11 +66,11 @@ export class GoogleClient {
       return 'unchanged';
     }
 
-    await calendar.events.update({
+    await this.queue.add(() => calendar.events.update({
       calendarId,
       eventId: existingEvent.id,
       requestBody: this.buildRequestBody(eventDto),
-    });
+    }));
     return 'updated';
   }
 
@@ -73,10 +79,10 @@ export class GoogleClient {
       version: 'v3',
       auth: this.auth,
     });
-    await calendar.events.delete({
+    await this.queue.add(() => calendar.events.delete({
       calendarId,
       eventId,
-    });
+    }));
   }
 
   public async deleteEvents(calendarId: string, events: EventWithId[]): Promise<EventWithId[]> {
