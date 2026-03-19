@@ -5,13 +5,6 @@ import {
 import type { SyncConfig } from './config.js';
 import { logger } from './logger.js';
 import { getGoogleAuthClient } from './google/auth.js';
-import type { OAuth2Client } from 'google-auth-library';
-import {
-  upsertEvent,
-  getSyncedEvents,
-  deleteEvents,
-  type EventDto,
-} from './google/index.js';
 import { dateTimeFromIso } from './utility.js';
 import {
   isWorkItemWithDates,
@@ -19,6 +12,8 @@ import {
 } from './types/WorkItemWithDates.js';
 import { PlaneSoGoogleSyncError } from './errors/PlaneSoGoogleSyncError.js';
 import type { EventWithId } from './types/EventWithId.js';
+import { GoogleClient } from './google/GoogleClient.js';
+import type { EventDto } from './google/EventDto.js';
 
 export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`Syncing ${syncConfig.plane.workspace}/${syncConfig.plane.projectId} to Google Calendar ${syncConfig.google.calendarId}...`);
@@ -41,16 +36,16 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`> Fetched ${workItems.results.length} work items from Plane.so`);
 
   logger.info('Authenticating with Google API...');
-  const auth = await getGoogleAuthClient(syncConfig.google.auth);
+  const googleClient = new GoogleClient(await getGoogleAuthClient(syncConfig.google.auth));
   logger.info('> Google authentication successful');
 
   logger.info('Retrieving existing events from Google Calendar...');
-  const calendarEvents = await getSyncedEvents(auth, syncConfig.google.calendarId);
+  const calendarEvents = await googleClient.getSyncedEvents(syncConfig.google.calendarId);
   logger.info(`> Retrieved ${calendarEvents.length} events from Google Calendar`);
 
   const workItemsWithDates = workItems.results.filter(isWorkItemWithDates);
   logger.info(`Syncing ${workItemsWithDates.length} work items with start and due dates to Google Calendar...`);
-  await Promise.all(workItemsWithDates.map(workItem => syncWorkItem(calendarEvents, syncConfig, syncConfig.plane.workspace, project, workItem, auth, syncConfig.google.calendarId)));
+  await Promise.all(workItemsWithDates.map(workItem => syncWorkItem(calendarEvents, syncConfig, syncConfig.plane.workspace, project, workItem, googleClient)));
   logger.info(`> Synced ${workItemsWithDates.length} work items to Google Calendar`);
 
   logger.info('Deleting events from Google Calendar that no longer have corresponding work items in Plane.so...');
@@ -59,7 +54,7 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
     const planeIssueId = event.extendedProperties?.private?.planeIssueId;
     return planeIssueId && !workItemIds.has(planeIssueId);
   });
-  const deletedEvents = await deleteEvents(auth, syncConfig.google.calendarId, eventsToDelete);
+  const deletedEvents = await googleClient.deleteEvents(syncConfig.google.calendarId, eventsToDelete);
   logger.info(`> Deleted ${deletedEvents.length} events from Google Calendar that no longer have corresponding work items in Plane.so`);
 
   if (deletedEvents.length !== eventsToDelete.length) {
@@ -79,7 +74,7 @@ function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, proj
   };
 }
 
-async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates, auth: OAuth2Client, calendarId: string): Promise<void> {
+async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates, googleClient: GoogleClient): Promise<void> {
   logger.info(`Syncing work item "${workItem.name}"`);
 
   if (!workItem.start_date || !workItem.target_date) {
@@ -88,7 +83,7 @@ async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfi
 
   const matchingEvent = existingEvents.find(event => event.extendedProperties?.private?.planeIssueId === workItem.id);
   const eventDto = getEventDtoFromWorkItem(syncConfig, workspace, project, workItem);
-  const result = await upsertEvent(auth, calendarId, eventDto, matchingEvent);
+  const result = await googleClient.upsertEvent(syncConfig.google.calendarId, eventDto, matchingEvent);
 
   if (result === 'created') logger.info(`> Created event for work item "${workItem.name}"`);
   else if (result === 'updated') logger.info(`> Updated event for work item "${workItem.name}"`);
