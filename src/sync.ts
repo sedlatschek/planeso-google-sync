@@ -61,7 +61,7 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
     throw new PlaneSoGoogleSyncError(`Failed to delete some events from Google Calendar. Expected to delete ${eventsToDelete.length} but deleted ${deletedEvents.length}.`);
   }
 
-  logger.info(`Sync completed for ${syncConfig.plane.workspace}/${syncConfig.plane.projectId}`);
+  logger.info(`Sync completed for ${syncConfig.plane.workspace}/${project.name}`);
 }
 
 function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates): EventDto {
