@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises';
 import { z } from 'zod';
 import jsYaml from 'js-yaml';
+import { stateGroupSchema } from './types/StateGroup.js';
 
 const googleAuthConfigSchema = z.object({
   clientId: z.string().min(1, 'Google OAuth2 client ID is required'),
@@ -29,6 +30,7 @@ const syncConfigSchema = z.object({
     calendarId: z.string().min(1, 'Google Calendar ID is required'),
     singleDayPrefix: z.string().optional(),
     multiDayPrefix: z.string().optional(),
+    stateSuffixes: z.record(stateGroupSchema, z.string()).optional(),
     auth: googleAuthConfigSchema,
   }),
   plane: planeConfigSchema,

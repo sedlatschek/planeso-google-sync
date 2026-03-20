@@ -6,8 +6,14 @@ sync:
       projectId: my-project-uuid
     google:
       calendarId: my-calendar-id@group.calendar.google.com
-      singleDayPrefix: "🚩 "
-      multiDayPrefix: "🔨 "
+      singleDayPrefix: "🚩 "  # optional: prefix for items with only a due date (no start date)
+      multiDayPrefix: "🔨 "   # optional: prefix for items with a start and due date
+      stateSuffixes:  # optional: suffix appended to event title based on Plane state group
+        backlog: " [Backlog]"
+        unstarted: " [Todo]"
+        started: " [In Progress]"
+        completed: " [Done]"
+        cancelled: " [Cancelled]"
       auth:
         clientId: "your-client-id.apps.googleusercontent.com"
         projectId: "your-project-id"
