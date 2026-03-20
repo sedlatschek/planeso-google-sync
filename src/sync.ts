@@ -7,9 +7,9 @@ import { logger } from './logger.js';
 import { getGoogleAuthClient } from './google/auth.js';
 import { dateTimeFromIso } from './utility.js';
 import {
-  isWorkItemWithDates,
-  type WorkItemWithDates,
-} from './types/WorkItemWithDates.js';
+  isWorkItemWithDate,
+  type WorkItemWithDate,
+} from './types/WorkItemWithDate.js';
 import { PlaneSoGoogleSyncError } from './errors/PlaneSoGoogleSyncError.js';
 import type { EventWithId } from './types/EventWithId.js';
 import { GoogleClient } from './google/GoogleClient.js';
@@ -43,8 +43,8 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   const calendarEvents = await googleClient.getSyncedEvents(syncConfig.google.calendarId);
   logger.info(`> Retrieved ${calendarEvents.length} events from Google Calendar`);
 
-  const workItemsWithDates = workItems.results.filter(isWorkItemWithDates);
-  logger.info(`Syncing ${workItemsWithDates.length} work items with start and due dates to Google Calendar...`);
+  const workItemsWithDates = workItems.results.filter(isWorkItemWithDate);
+  logger.info(`Syncing ${workItemsWithDates.length} work items with due dates to Google Calendar...`);
   await Promise.all(workItemsWithDates.map(workItem => syncWorkItem(calendarEvents, syncConfig, syncConfig.plane.workspace, project, workItem, googleClient)));
   logger.info(`> Synced ${workItemsWithDates.length} work items to Google Calendar`);
 
@@ -64,22 +64,18 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`Sync completed for ${syncConfig.plane.workspace}/${project.name}`);
 }
 
-function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates): EventDto {
+function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDate): EventDto {
   return {
     id: workItem.id,
     title: `${syncConfig.google.prefix || ''}${workItem.name}`,
     description: `<a href="https://app.plane.so/${workspace}/browse/${project.identifier}-${workItem.sequence_id}">View in Plane.so</a>`,
-    start: dateTimeFromIso(workItem.start_date),
+    start: dateTimeFromIso(workItem.start_date ?? workItem.target_date),
     end: dateTimeFromIso(workItem.target_date),
   };
 }
 
-async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDates, googleClient: GoogleClient): Promise<void> {
+async function syncWorkItem(existingEvents: EventWithId[], syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDate, googleClient: GoogleClient): Promise<void> {
   logger.info(`Syncing work item "${workItem.name}"`);
-
-  if (!workItem.start_date || !workItem.target_date) {
-    return;
-  }
 
   const matchingEvent = existingEvents.find(event => event.extendedProperties?.private?.planeIssueId === workItem.id);
   const eventDto = getEventDtoFromWorkItem(syncConfig, workspace, project, workItem);
