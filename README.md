@@ -72,7 +72,7 @@ planeso-google-sync --config /path/to/my-config.yml
 
 ### How it works
 
-Each run fetches all work items across every project in your Plane.so workspace and syncs those that have both a **start date** and a **due date** to Google Calendar as all-day events:
+Each run fetches all work items across every project in your Plane.so workspace and syncs those that have both a **due date** to Google Calendar as all-day events:
 
 - **New item** (no matching calendar event yet) → creates a new all-day event.
 - **Changed item** (title or dates differ) → updates the existing event.
