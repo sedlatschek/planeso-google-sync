@@ -107,10 +107,15 @@ function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, proj
   const prefix = getPrefix(syncConfig, workItem);
   const suffix = getSuffix(syncConfig, workItem, stateGroups);
 
+  const viewLink = `<a href="https://app.plane.so/${workspace}/browse/${project.identifier}-${workItem.sequence_id}">View in Plane.so</a>`;
+  const description = syncConfig.google.syncDescriptions && workItem.description_html
+    ? `${viewLink}<br>${workItem.description_html}`
+    : viewLink;
+
   return {
     id: workItem.id,
     title: `${prefix}${workItem.name}${suffix}`,
-    description: `<a href="https://app.plane.so/${workspace}/browse/${project.identifier}-${workItem.sequence_id}">View in Plane.so</a>`,
+    description,
     start: dateTimeFromIso(workItem.start_date ?? workItem.target_date),
     end: dateTimeFromIso(workItem.target_date),
   };
