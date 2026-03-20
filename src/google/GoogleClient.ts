@@ -14,7 +14,7 @@ export type UpsertResult = 'created' | 'updated' | 'unchanged';
 
 export class GoogleClient {
   private readonly queue = new PQueue({
-    intervalCap: 10,
+    intervalCap: 3,
     interval: 1000,
   });
 
@@ -100,7 +100,7 @@ export class GoogleClient {
       summary: eventDto.title,
       description: eventDto.description,
       start: { date: eventDto.start.toISODate() },
-      end: { date: eventDto.end.toISODate() },
+      end: { date: eventDto.end.plus({ days: 1 }).toISODate() },
       extendedProperties: { private: {
         planeSource: PLANE_SOURCE_TAG,
         planeIssueId: eventDto.id,
@@ -113,7 +113,7 @@ export class GoogleClient {
       event.summary === eventDto.title
       && event.description === eventDto.description
       && event.start?.date === eventDto.start.toISODate()
-      && event.end?.date === eventDto.end.toISODate()
+      && event.end?.date === eventDto.end.plus({ days: 1 }).toISODate()
     );
   }
 }
