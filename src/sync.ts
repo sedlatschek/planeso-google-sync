@@ -64,10 +64,18 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`Sync completed for ${syncConfig.plane.workspace}/${project.name}`);
 }
 
+function getPrefix(syncConfig: SyncConfig, workItem: WorkItemWithDate): string {
+  const isDueDateOnly = !workItem.start_date;
+  if (isDueDateOnly) {
+    return syncConfig.google.singleDayPrefix ?? syncConfig.google.multiDayPrefix ?? '';
+  }
+  return syncConfig.google.multiDayPrefix ?? '';
+}
+
 function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDate): EventDto {
   return {
     id: workItem.id,
-    title: `${syncConfig.google.prefix || ''}${workItem.name}`,
+    title: `${getPrefix(syncConfig, workItem)}${workItem.name}`,
     description: `<a href="https://app.plane.so/${workspace}/browse/${project.identifier}-${workItem.sequence_id}">View in Plane.so</a>`,
     start: dateTimeFromIso(workItem.start_date ?? workItem.target_date),
     end: dateTimeFromIso(workItem.target_date),

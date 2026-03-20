@@ -27,7 +27,8 @@ export type PlaneConfig = z.infer<typeof planeConfigSchema>;
 const syncConfigSchema = z.object({
   google: z.object({
     calendarId: z.string().min(1, 'Google Calendar ID is required'),
-    prefix: z.string().optional(),
+    singleDayPrefix: z.string().optional(),
+    multiDayPrefix: z.string().optional(),
     auth: googleAuthConfigSchema,
   }),
   plane: planeConfigSchema,
