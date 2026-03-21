@@ -1,6 +1,6 @@
 {
   "name": "planeso-google-sync",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Sync your Plane.so work items with a Google calendar",
   "license": "ISC",
   "author": "Simon Sedlatschek <code@sedlatschek.com>",
