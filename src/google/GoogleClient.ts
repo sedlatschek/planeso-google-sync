@@ -69,7 +69,8 @@ export class GoogleClient {
     await this.queue.add(() => calendar.events.update({
       calendarId,
       eventId: existingEvent.id,
-      requestBody: this.buildRequestBody(eventDto),
+      sendUpdates: 'all',
+      requestBody: this.buildRequestBody(eventDto, existingEvent.attendees ?? []),
     }));
     return 'updated';
   }
@@ -95,7 +96,7 @@ export class GoogleClient {
     return deletedEvents.filter((event): event is EventWithId => event !== undefined);
   }
 
-  private buildRequestBody(eventDto: EventDto): calendar_v3.Schema$Event {
+  private buildRequestBody(eventDto: EventDto, attendees: calendar_v3.Schema$EventAttendee[] = []): calendar_v3.Schema$Event {
     return {
       summary: eventDto.title,
       description: eventDto.description,
@@ -105,6 +106,7 @@ export class GoogleClient {
         planeSource: PLANE_SOURCE_TAG,
         planeIssueId: eventDto.id,
       } },
+      ...(attendees.length > 0 ? { attendees } : {}),
     };
   }
 
