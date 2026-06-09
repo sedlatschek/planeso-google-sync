@@ -1,12 +1,17 @@
 import {
-  calendar_v3, google,
+  calendar_v3,
+  google,
 } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
+import { GaxiosError } from 'gaxios';
 import PQueue from 'p-queue';
+import { rm } from 'node:fs/promises';
 import {
-  isEventWithId, type EventWithId,
+  isEventWithId,
+  type EventWithId,
 } from '../types/EventWithId.js';
 import type { EventDto } from './EventDto.js';
+import { PlaneSoGoogleSyncError } from '../errors/PlaneSoGoogleSyncError.js';
 
 const PLANE_SOURCE_TAG = 'planeso-google-sync';
 
@@ -18,7 +23,28 @@ export class GoogleClient {
     interval: 1000,
   });
 
-  constructor(private readonly auth: OAuth2Client) { }
+  constructor(
+    private readonly auth: OAuth2Client,
+    private readonly tokenFilePath?: string,
+  ) { }
+
+  private async handleApiError(error: unknown): Promise<never> {
+    if (
+      error instanceof GaxiosError
+      && (error.message.includes('invalid_grant') || error.response?.data?.error === 'invalid_grant')
+    ) {
+      if (this.tokenFilePath) {
+        await rm(this.tokenFilePath, { force: true });
+        throw new PlaneSoGoogleSyncError(
+          `Google OAuth refresh token is invalid or expired. The token file at "${this.tokenFilePath}" has been deleted. Re-run the application to re-authenticate.`,
+        );
+      }
+      throw new PlaneSoGoogleSyncError(
+        'Google OAuth refresh token is invalid or expired. Delete your token file and re-run the application to re-authenticate.',
+      );
+    }
+    throw error;
+  }
 
   public async getSyncedEvents(calendarId: string): Promise<EventWithId[]> {
     const calendar = google.calendar({
@@ -28,18 +54,23 @@ export class GoogleClient {
     const events: EventWithId[] = [];
     let pageToken: string | undefined;
 
-    do {
-      const response = await this.queue.add(() => calendar.events.list({
-        calendarId,
-        privateExtendedProperty: [`planeSource=${PLANE_SOURCE_TAG}`],
-        showDeleted: false,
-        singleEvents: true,
-        maxResults: 250,
-        ...(pageToken ? { pageToken } : {}),
-      }));
-      events.push(...(response?.data.items?.filter(isEventWithId) ?? []));
-      pageToken = response?.data.nextPageToken ?? undefined;
-    } while (pageToken);
+    try {
+      do {
+        const response = await this.queue.add(() => calendar.events.list({
+          calendarId,
+          privateExtendedProperty: [`planeSource=${PLANE_SOURCE_TAG}`],
+          showDeleted: false,
+          singleEvents: true,
+          maxResults: 250,
+          ...(pageToken ? { pageToken } : {}),
+        }));
+        events.push(...(response?.data.items?.filter(isEventWithId) ?? []));
+        pageToken = response?.data.nextPageToken ?? undefined;
+      } while (pageToken);
+    }
+    catch (error) {
+      await this.handleApiError(error);
+    }
 
     return events;
   }

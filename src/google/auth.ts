@@ -20,7 +20,10 @@ import { CONFIG_DIR } from '../constant.js';
 
 const GOOGLE_SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 
-export async function getGoogleAuthClient(googleAuthConfig: GoogleAuthConfig): Promise<OAuth2Client> {
+export async function getGoogleAuthClient(googleAuthConfig: GoogleAuthConfig): Promise<{
+  authClient: OAuth2Client
+  tokenFile: string
+}> {
   const {
     redirectUris,
     clientId,
@@ -45,7 +48,17 @@ export async function getGoogleAuthClient(googleAuthConfig: GoogleAuthConfig): P
 
   if (tokenRaw !== undefined) {
     authClient.setCredentials(JSON.parse(tokenRaw) as Credentials);
-    return authClient;
+    authClient.on('tokens', async (tokens) => {
+      const existing = JSON.parse(await readFile(tokenFile, 'utf-8').catch(() => '{}')) as Credentials;
+      await writeFile(tokenFile, JSON.stringify({
+        ...existing,
+        ...tokens,
+      }, null, 2), 'utf-8');
+    });
+    return {
+      authClient,
+      tokenFile,
+    };
   }
 
   const authUrl = authClient.generateAuthUrl({
@@ -70,5 +83,8 @@ export async function getGoogleAuthClient(googleAuthConfig: GoogleAuthConfig): P
   await writeFile(tokenFile, JSON.stringify(tokens, null, 2), 'utf-8');
   logger.info(`\nToken saved to ${tokenFile}`);
 
-  return authClient;
+  return {
+    authClient,
+    tokenFile,
+  };
 }

@@ -46,7 +46,11 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   logger.info(`> Fetched ${stateGroups.size} states from Plane.so`);
 
   logger.info('Authenticating with Google API...');
-  const googleClient = new GoogleClient(await getGoogleAuthClient(syncConfig.google.auth));
+  const {
+    authClient,
+    tokenFile,
+  } = await getGoogleAuthClient(syncConfig.google.auth);
+  const googleClient = new GoogleClient(authClient, tokenFile);
   logger.info('> Google authentication successful');
 
   logger.info('Retrieving existing events from Google Calendar...');
