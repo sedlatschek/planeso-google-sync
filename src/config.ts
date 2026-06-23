@@ -11,6 +11,7 @@ const googleAuthConfigSchema = z.object({
   authProviderX509CertUrl: z.string().min(1, 'Google OAuth2 auth provider x509 cert URL is required'),
   clientSecret: z.string().min(1, 'Google OAuth2 client secret is required'),
   redirectUris: z.array(z.string()).min(1, 'Google OAuth2 redirect URIs are required'),
+  localPort: z.number().int().min(1).max(65535).optional(),
   tokenFile: z.string().optional(),
 });
 
