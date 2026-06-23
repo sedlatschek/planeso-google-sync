@@ -8,6 +8,7 @@ export const stateGroupValues: GroupEnum[] = [
   'started',
   'completed',
   'cancelled',
+  'triage',
 ] as const;
 
 export const stateGroupSchema = z.enum(stateGroupValues);

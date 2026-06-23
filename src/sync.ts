@@ -57,19 +57,21 @@ export async function sync(syncConfig: SyncConfig): Promise<void> {
   const calendarEvents = await googleClient.getSyncedEvents(syncConfig.google.calendarId);
   logger.info(`> Retrieved ${calendarEvents.length} events from Google Calendar`);
 
-  const workItemsWithDates = workItems.results.filter(isWorkItemWithDate);
+  const workItemsWithDates = workItems.results
+    .filter(isWorkItemWithDate)
+    .filter(wi => syncConfig.sync.states[stateGroups.get(wi.state) ?? 'backlog'] !== false);
   logger.info(`Syncing ${workItemsWithDates.length} work items with due dates to Google Calendar...`);
   await Promise.all(workItemsWithDates.map(workItem => syncWorkItem(calendarEvents, syncConfig, syncConfig.plane.workspace, project, workItem, googleClient, stateGroups)));
   logger.info(`> Synced ${workItemsWithDates.length} work items to Google Calendar`);
 
-  logger.info('Deleting events from Google Calendar that no longer have corresponding work items in Plane.so...');
+  logger.info('Deleting events from Google Calendar that no longer have corresponding work items in Plane.so or changed their state to something that is not synced...');
   const workItemIds = new Set(workItemsWithDates.map(wi => wi.id));
   const eventsToDelete = calendarEvents.filter((event) => {
     const planeIssueId = event.extendedProperties?.private?.planeIssueId;
     return planeIssueId && !workItemIds.has(planeIssueId);
   });
   const deletedEvents = await googleClient.deleteEvents(syncConfig.google.calendarId, eventsToDelete);
-  logger.info(`> Deleted ${deletedEvents.length} events from Google Calendar that no longer have corresponding work items in Plane.so`);
+  logger.info(`> Deleted ${deletedEvents.length} events from Google Calendar that no longer have corresponding work items in Plane.so or changed their state to something that is not synced`);
 
   if (deletedEvents.length !== eventsToDelete.length) {
     throw new PlaneSoGoogleSyncError(`Failed to delete some events from Google Calendar. Expected to delete ${eventsToDelete.length} but deleted ${deletedEvents.length}.`);

@@ -36,6 +36,14 @@ const syncConfigSchema = z.object({
     auth: googleAuthConfigSchema,
   }),
   plane: planeConfigSchema,
+  sync: z.object({ states: z.record(stateGroupSchema, z.boolean()).default({
+    backlog: true,
+    unstarted: true,
+    started: true,
+    completed: true,
+    cancelled: true,
+    triage: true,
+  }) }),
 });
 
 export type SyncConfig = z.infer<typeof syncConfigSchema>;

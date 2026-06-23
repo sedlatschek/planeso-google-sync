@@ -24,3 +24,11 @@ sync:
         clientSecret: "your-client-secret"
         redirectUris:
           - "http://localhost"
+    sync:
+      states:
+        backlog: true
+        unstarted: true
+        started: true
+        completed: true
+        cancelled: false
+        triage: false
