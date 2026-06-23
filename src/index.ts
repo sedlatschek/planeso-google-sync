@@ -1,5 +1,15 @@
 #!/usr/bin/env node
 
+if (process.platform === 'win32') {
+  const { execSync } = await import('node:child_process');
+  try {
+    execSync('chcp 65001', { stdio: 'pipe' });
+  }
+  catch (cause) {
+    throw new Error('Could not set code page', { cause });
+  }
+}
+
 import { Command } from 'commander';
 import { sync } from './sync.js';
 import { getConfig } from './config.js';
