@@ -2,6 +2,7 @@ import {
   PlaneClient,
   type Project,
 } from '@makeplane/plane-node-sdk';
+import type { DateTime } from 'luxon';
 import type { SyncConfig } from './config.js';
 import { logger } from './logger.js';
 import { getGoogleAuthClient } from './google/auth.js';
@@ -109,6 +110,18 @@ function getSuffix(syncConfig: SyncConfig, workItem: WorkItemWithDateAndState, s
   return stateGroup ? syncConfig.google.stateSuffixes?.[stateGroup] ?? '' : '';
 }
 
+function getEndDateTime(workItem: WorkItemWithDateAndState, start: DateTime<true>, stateGroups: StateGroupMap): DateTime<true> {
+  const stateGroup = stateGroups.get(workItem.state);
+  const isDone = stateGroup === 'completed' || stateGroup === 'cancelled';
+
+  const end = isDone && workItem.completed_at
+    ? dateTimeFromIso(workItem.completed_at)
+    : dateTimeFromIso(workItem.target_date);
+
+  // Clamp to the start so the all-day event never ends before it begins.
+  return end < start ? start : end;
+}
+
 function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, project: Project, workItem: WorkItemWithDateAndState, stateGroups: StateGroupMap): EventDto {
   const prefix = getPrefix(syncConfig, workItem);
   const suffix = getSuffix(syncConfig, workItem, stateGroups);
@@ -118,12 +131,14 @@ function getEventDtoFromWorkItem(syncConfig: SyncConfig, workspace: string, proj
     ? `${viewLink}<br>${workItem.description_html}`
     : viewLink;
 
+  const start = dateTimeFromIso(workItem.start_date ?? workItem.target_date);
+
   return {
     id: workItem.id,
     title: `${prefix}${workItem.name}${suffix}`,
     description,
-    start: dateTimeFromIso(workItem.start_date ?? workItem.target_date),
-    end: dateTimeFromIso(workItem.target_date),
+    start,
+    end: getEndDateTime(workItem, start, stateGroups),
   };
 }
 
