@@ -97,7 +97,7 @@ export class GoogleClient {
       return 'unchanged';
     }
 
-    await this.queue.add(() => calendar.events.update({
+    await this.queue.add(() => calendar.events.patch({
       calendarId,
       eventId: existingEvent.id,
       sendUpdates: 'all',
